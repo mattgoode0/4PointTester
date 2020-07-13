@@ -15,8 +15,9 @@ class Bridge(QObject):
     @Slot(str, str, str, str, str, str, str, str, result=str)
     def start_test(self, name, startV, endV, steps, wait, mode, units, sweep_type):
         print(name, startV, endV, steps, wait, mode, units, sweep_type)
+
+        KeithleyInterface.FourPointProbe(name, startV, endV, steps, wait, mode, units, sweep_type)
         return ("Test Complete")
-        #KeithleyInterface.FourPointProbe(signal, name, startV, endV, steps, mode, units, sweep_type)
 
 
 if __name__ == '__main__':

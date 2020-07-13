@@ -5,6 +5,7 @@ https://www.tek.com/keithley-source-measure-units/keithley-smu-2400-graphical-se
 
 import pyvisa  # https://pyvisa.readthedocs.io/en/1.5-docs/instruments.html
 import TCRead
+import datetime
 
 
 class FourPointProbe:
@@ -16,32 +17,37 @@ class FourPointProbe:
         self.instrument = self.rm.open_resource('USB::0x05E6::0x2460::04446789::INSTR')
         print('Connected to 2460 High-Current Source Meter')
 
+        del self.instrument.timeout
+
         self.instrument.write("*RST")
-        self.instrument.write("SOUR:FUNC " + units)  # Set the source function to specified unit.
-        self.instrument.write("SYSTEM:" + mode)  # sets scope to 2 or 4 wire
-        self.instrument.write("SOUR:" + units + ":RANG AUTO")  # Set the source range to 20 V.
-        self.instrument.write("SOUR:" + units + ":VLIM 20")  # Set the source limit for measurements to
+        self.instrument.write("SOUR:FUNC " + mode)  # Set the source function to specified unit.
+        self.instrument.write("SYSTEM:" + units)  # sets scope to 2 or 4 wire
+        self.instrument.write("SOUR:" + mode + ":RANG " + endV)  # Set the source range to 20 V.
 
-        if units == "CURRent":
+        if mode == "CURRent":
+            self.instrument.write("SOUR:CURR:VLIM 105")  # Set the source limit for measurements to
             self.instrument.write("SENS:FUNC \"VOLT\"")  # Set the measure function to voltage.
-            self.instrument.write("SENS:VOLT:RANG AUTO")  # Set the current range to automatic
+            self.instrument.write("SENS:VOLT:RANGe:AUTO ON")  # Set the current range to automatic
         else:
+            self.instrument.write("SOUR:VOLT:ILIM 7.3")
             self.instrument.write("SENS:FUNC \"CURRent\"")  # Set the measure function to Current.
-            self.instrument.write("SENS:CURRent:RANGe:AUTO")  # Set the current range to automatic
+            self.instrument.write("SENS:CURRent:RANGe:AUTO ON")  # Set the current range to automatic
 
-        self.instrument.write(
-            "SOUR:SWE:CURR:LOG 100e-3, 6, 100, 100e-3, 1, BEST, OFF")  # Set up a linear sweep that sweeps from
-        # 0 to 10 V in 21 steps with a source delay of 200 ms.
-
-        self.instrument.write("SOUR:SWE:" + units + ":" + sweep_type + " " + startV + ", " + endV + ", " + steps + ", "
+        self.instrument.write("SOUR:SWE:" + mode + ":" + sweep_type + " " + startV + ", " + endV + ", " + steps + ", "
                               + wait + ", 1, BEST, OFF")
-        TCRead.get_temp(True)
-        self.instrument.write("INIT; *WAI")
-        self.instrument.write("TRAC:DATA? 1, 100, \"defbuffer1\", SOUR, READ")
-        savedata = "TRAC:SAVE \"/usb1/myData" + str(name) + ".csv\", \"defbuffer1\""
+
+        self.instrument.write(":SYSTem:BEEPer 500, 1")
+        self.instrument.write("INIT;*WAI")
+        self.instrument.write(":SYSTem:BEEPer 500, 1")
+        print(datetime.datetime.now())
+        TCRead.get_temp(steps, wait, name)
+
+
+        savedata = "TRAC:SAVE \"/usb1/SAMPLE_" + str(name) + ".csv\", \"defbuffer1\""
         self.instrument.write(savedata)
-        TCRead.get_temp(False)
         print("Data Saved")
+        print(datetime.datetime.now())
+        self.disconnect()
 
     def disconnect(self):
         self.instrument.close()
