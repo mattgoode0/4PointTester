@@ -18,9 +18,13 @@ def get_temp(steps, wait, name):
     # record TC at each step of the sweep
     while i <= int(steps):
         raw_temp = str(ser.readline())
-        temp = i + "," + float(raw_temp[2:7])
+        while len(raw_temp) != 12:
+            raw_temp = str(ser.readline())
+        # print(raw_temp)
+        temp = float(raw_temp[2:7])
         data_storage.append(temp)
-        time.sleep(int(wait))
+        time.sleep(float(wait))
+        ser.flushInput()
         i += 1
 
     df = pd.DataFrame(data_storage)
